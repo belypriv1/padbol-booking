@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Padbol | Calendar</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #101010;
+      color: #fff;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+      background: #1a512e;
+      color: #fff;
+    }
+    .calendar-container {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    #calendar {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .fc-event.booked {
+      background-color: #cc0000 !important;
+      border: none;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+</head>
+<body>
+  <header>
+    <h2 id="welcome-text">Welcome to Padbol</h2>
+    <div>
+      <button onclick="logout()" style="margin-left:20px; background:#cc0000; color:#fff; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">Logout</button>
+    </div>
+  </header>
+
+  <div class="calendar-container">
+    <div id='calendar'></div>
+  </div>
+
+  <script>
+    let lang = 'en';
+    let calendar;
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      const isAdmin = currentUser?.email === "bassemnabil514@gmail.com";
+
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        slotMinTime: "00:00:00",
+        slotMaxTime: "23:59:00",
+        slotDuration: "00:30:00",
+        allDaySlot: false,
+        selectable: true,
+        selectMirror: true,
+        nowIndicator: true,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay'
+        },
+        events: JSON.parse(localStorage.getItem('bookings') || '[]'),
+        select: function (info) {
+          const existing = calendar.getEvents().some(event =>
+            event.startStr === info.startStr
+          );
+          if (existing) {
+            alert("This slot is already booked.");
+            return;
+          }
+
+          if (!confirm("Are you sure you want to book this slot?")) return;
+
+          const booking = {
+            title: 'Booked',
+            start: info.startStr,
+            end: info.endStr,
+            className: 'booked',
+            extendedProps: {
+              user: currentUser
+            }
+          };
+          const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+          bookings.push(booking);
+          localStorage.setItem('bookings', JSON.stringify(bookings));
+          calendar.addEvent(booking);
+        },
+        eventDidMount: function(info) {
+          const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+          const isAdmin = currentUser?.email === "bassemnabil514@gmail.com";
+          const bookedUser = info.event.extendedProps.user;
+
+          if (!isAdmin) {
+            info.el.innerText = 'Booked';
+          } else {
+            info.el.innerText = `Booked by ${bookedUser?.name || 'Unknown'} (${bookedUser?.email || 'N/A'})`;
+          }
+        }
+      });
+
+      calendar.render();
+    });
+
+    function logout() {
+      localStorage.removeItem("currentUser");
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
